@@ -68,7 +68,7 @@ RSpec.describe SolidusSubscriptions::Processor, :checkout do
 
       described_class.run
 
-      expect((subscription.reload.actionable_date).to_date).to eq((old_actionable_date + 1.week).to_date)
+      expect(subscription.reload.actionable_date.to_date).to eq((old_actionable_date + 1.week).to_date)
     end
   end
 

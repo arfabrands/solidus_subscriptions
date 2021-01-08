@@ -10,6 +10,7 @@ RSpec.describe SolidusSubscriptions::Checkout, :checkout do
       expect(order).to be_paid
     end
 
+    # rubocop:disable RSpec/MultipleExpectations
     it 'copies basic information from the subscription' do
       stub_spree_preferences(auto_capture: true)
       installment = create(:installment, :actionable)
@@ -24,6 +25,7 @@ RSpec.describe SolidusSubscriptions::Checkout, :checkout do
       expect(order.user).to eq(subscription.user)
       expect(order.email).to eq(subscription.user.email)
     end
+    # rubocop:enable RSpec/MultipleExpectations
 
     it 'marks the order as a subscription order' do
       stub_spree_preferences(auto_capture: true)
@@ -92,7 +94,14 @@ RSpec.describe SolidusSubscriptions::Checkout, :checkout do
       stub_spree_preferences(auto_capture: true)
       installment = create(:installment, :actionable)
       failure_dispatcher = stub_dispatcher(SolidusSubscriptions::Dispatcher::FailureDispatcher, installment)
-      allow_any_instance_of(Spree::Order).to receive(:next!).and_raise(StateMachines::InvalidTransition.new(Spree::Order.new, Spree::Order.state_machines[:state], :next))
+      # rubocop:disable RSpec/AnyInstance
+      allow_any_instance_of(Spree::Order).to receive(:next!)
+        .and_raise(StateMachines::InvalidTransition.new(
+          Spree::Order.new,
+          Spree::Order.state_machines[:state],
+          :next,
+        ))
+      # rubocop:enable RSpec/AnyInstance
 
       described_class.new(installment).process
 
