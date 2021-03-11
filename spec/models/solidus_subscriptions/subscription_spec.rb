@@ -6,8 +6,13 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
   it { is_expected.to validate_presence_of :successive_skip_count }
   it { is_expected.to validate_numericality_of(:skip_count).is_greater_than_or_equal_to(0) }
   it { is_expected.to validate_numericality_of(:successive_skip_count).is_greater_than_or_equal_to(0) }
-
   it { is_expected.to accept_nested_attributes_for(:line_items) }
+
+  it 'validates currency correctly' do
+    expect(subject).to validate_inclusion_of(:currency).
+      in_array(::Money::Currency.all.map(&:iso_code)).
+      with_message('is not a valid currency code')
+  end
 
   describe 'creating a subscription' do
     it 'tracks the creation' do
@@ -748,6 +753,43 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
 
           expect(subscription.maximum_reprocessing_time_reached?).to eq(false)
         end
+      end
+    end
+  end
+
+  describe '#actionable?' do
+    context 'when the actionable date is nil' do
+      it 'is not actionable' do
+        subscription = build_stubbed(:subscription, actionable_date: nil)
+
+        expect(subscription).not_to be_actionable
+      end
+    end
+
+    context 'when the actionable date is in the future' do
+      it 'is not actionable' do
+        subscription = build_stubbed(:subscription, actionable_date: Time.zone.today + 5.days)
+
+        expect(subscription).not_to be_actionable
+      end
+    end
+
+    context 'when the state is either canceled or inactive' do
+      it 'is not actionable' do
+        canceled_subscription = build_stubbed(:subscription, :canceled)
+        inactive_subscription = build_stubbed(:subscription, :inactive)
+
+        [canceled_subscription, inactive_subscription].each do |subscription|
+          expect(subscription).not_to be_actionable
+        end
+      end
+    end
+
+    context 'when the active subscription actionable date is today or in the past' do
+      it 'is actionable' do
+        subscription = build_stubbed(:subscription, actionable_date: Time.zone.today)
+
+        expect(subscription).to be_actionable
       end
     end
   end

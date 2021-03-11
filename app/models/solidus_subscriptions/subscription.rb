@@ -26,6 +26,7 @@ module SolidusSubscriptions
     validates :interval_length, numericality: { greater_than: 0 }
     validates :payment_method, presence: true, if: -> { payment_source }
     validates :payment_source, presence: true, if: -> { payment_method&.source_required? }
+    validates :currency, inclusion: { in: ::Money::Currency.all.map(&:iso_code) }
 
     accepts_nested_attributes_for :shipping_address
     accepts_nested_attributes_for :billing_address
@@ -263,6 +264,10 @@ module SolidusSubscriptions
       return false unless failing_since
 
       Time.zone.now > (failing_since + SolidusSubscriptions.configuration.maximum_reprocessing_time)
+    end
+
+    def actionable?
+      actionable_date && actionable_date <= Time.zone.today && ["canceled", "inactive"].exclude?(state)
     end
 
     private

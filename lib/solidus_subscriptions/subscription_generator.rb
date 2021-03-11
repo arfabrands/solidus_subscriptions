@@ -29,11 +29,14 @@ module SolidusSubscriptions
         billing_address: order.bill_address,
         payment_source: order.payments.valid.last&.payment_source,
         payment_method: order.payments.valid.last&.payment_method,
+        currency: order.currency,
         **configuration.to_h
       }
 
       Subscription.create!(subscription_attributes) do |sub|
         sub.actionable_date = sub.next_actionable_date
+      end.tap do |_subscription|
+        cleanup_subscription_line_items(subscription_line_items)
       end
     end
 
@@ -53,6 +56,15 @@ module SolidusSubscriptions
     end
 
     private
+
+    def cleanup_subscription_line_items(subscription_line_items)
+      ids = subscription_line_items.pluck :id
+      SolidusSubscriptions::LineItem.where(id: ids).update_all(
+        interval_length: nil,
+        interval_units: nil,
+        end_date: nil
+      )
+    end
 
     def subscription_configuration(subscription_line_item)
       SubscriptionConfiguration.new(
