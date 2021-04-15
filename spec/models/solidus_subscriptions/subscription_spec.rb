@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe SolidusSubscriptions::Subscription, type: :model do
@@ -12,6 +14,16 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
     expect(subject).to validate_inclusion_of(:currency).
       in_array(::Money::Currency.all.map(&:iso_code)).
       with_message('is not a valid currency code')
+  end
+
+  it 'validates payment_source ownership' do
+    subscription = create(:subscription)
+
+    subscription.update(payment_source: create(:credit_card))
+    expect(subscription.errors.messages[:payment_source]).to include('does not belong to the user associated with the subscription')
+
+    subscription.update(payment_source: create(:credit_card, user: subscription.user))
+    expect(subscription.errors.messages[:payment_source]).not_to include('does not belong to the user associated with the subscription')
   end
 
   describe 'creating a subscription' do
@@ -80,7 +92,7 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
       stub_const('Spree::Event', class_spy(Spree::Event))
 
       subscription = create(:subscription)
-      subscription.update!(payment_source: create(:credit_card))
+      subscription.update!(payment_source: create(:credit_card, user: subscription.user))
 
       expect(Spree::Event).to have_received(:fire).with(
         'solidus_subscriptions.subscription_payment_method_changed',
@@ -102,7 +114,7 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
       allow(SolidusSubscriptions.configuration).to receive(:minimum_cancellation_notice) { minimum_cancellation_notice }
     end
 
-    context 'the subscription can be canceled' do
+    context 'when the subscription can be canceled' do
       let(:actionable_date) { 1.month.from_now }
       let(:minimum_cancellation_notice) { 1.day }
 
@@ -117,7 +129,7 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
       end
     end
 
-    context 'the subscription cannot be canceled' do
+    context 'when the subscription cannot be canceled' do
       let(:actionable_date) { Date.current }
       let(:minimum_cancellation_notice) { 1.day }
 
@@ -211,7 +223,7 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
       end
     end
 
-    context 'the subscription can be deactivated' do
+    context 'when the subscription can be deactivated' do
       let(:attributes) do
         { end_date: Date.current.ago(2.days) }
       end
@@ -227,7 +239,7 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
       end
     end
 
-    context 'the subscription cannot be deactivated' do
+    context 'when the subscription cannot be deactivated' do
       it { is_expected.to be_falsy }
 
       it 'does not create an event' do
@@ -261,7 +273,7 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
       end
     end
 
-    context 'the subscription cannot be activated' do
+    context 'when the subscription cannot be activated' do
       it 'returns false' do
         subscription = create(:subscription, actionable_date: Time.zone.today)
 
@@ -400,25 +412,25 @@ RSpec.describe SolidusSubscriptions::Subscription, type: :model do
     let!(:failed_subs) { create_list(:installment, 2, :failed).map(&:subscription) }
     let!(:success_subs) { create_list(:installment, 2, :success).map(&:subscription) }
 
-    context 'successfull subscriptions' do
+    context 'with successfull subscriptions' do
       let(:state) { :success }
 
       it { is_expected.to match_array success_subs }
     end
 
-    context 'failed subscriptions' do
+    context 'with failed subscriptions' do
       let(:state) { :failed }
 
       it { is_expected.to match_array failed_subs }
     end
 
-    context 'new subscriptions' do
+    context 'with new subscriptions' do
       let(:state) { :pending }
 
       it { is_expected.to match_array new_subs }
     end
 
-    context 'unknown state' do
+    context 'with unknown state' do
       let(:state) { :foo }
 
       it 'raises an error' do

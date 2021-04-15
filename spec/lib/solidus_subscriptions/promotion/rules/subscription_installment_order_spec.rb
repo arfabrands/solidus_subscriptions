@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-RSpec.describe SolidusSubscriptions::SubscriptionOrderPromotionRule do
+RSpec.describe SolidusSubscriptions::Promotion::Rules::SubscriptionInstallmentOrder do
   let(:rule) { described_class.new }
 
   describe '#applicable' do

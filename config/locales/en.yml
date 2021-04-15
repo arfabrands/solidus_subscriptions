@@ -8,6 +8,7 @@ en:
   solidus_subscriptions:
     subscription:
       actionable_date: "Actionable Date"
+      invalid_payment_details: Invalid payment method or source
     installment_details:
       out_of_stock: >
         This installment could not be processed because of insufficient
@@ -45,7 +46,7 @@ en:
           orders: Orders
         new:
           back: Back to Subscriptions List
-          title: Create a Susbcription
+          title: Create a Subscription
         form:
           subscription: Subscription
           subscription_line_items: Line Items
@@ -97,6 +98,10 @@ en:
       solidus_subscriptions/installment/state:
         fulfilled: Fulfilled
         unfulfilled: Unfulfilled
+      solidus_subscriptions/promotion/rules/subscription_creation_order:
+        description: Creates a subscription
+      solidus_subscriptions/promotion/rules/subscription_installment_order:
+        description: Is a subscription installment
     models:
       solidus_subscriptions/subscription:
         one: Subscription
@@ -120,3 +125,5 @@ en:
                 limit. It can no longer be skipped.
             currency:
               inclusion: "is not a valid currency code"
+            payment_source:
+              not_owned_by_user: "does not belong to the user associated with the subscription"
